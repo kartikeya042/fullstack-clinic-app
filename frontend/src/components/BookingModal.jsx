@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import axios from 'axios'
+import { API_URL } from '../config/api'
 
 const INITIAL_FORM = {
   fullName: '',
@@ -41,6 +43,7 @@ function BookingModal({ isOpen, onClose, onSuccess }) {
   const [form, setForm] = useState(INITIAL_FORM)
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
+  const [newCredentials, setNewCredentials] = useState(null)
 
   useEffect(() => {
     if (!isOpen) return undefined
@@ -145,6 +148,7 @@ function BookingModal({ isOpen, onClose, onSuccess }) {
     if (!validateStepTwo()) return
 
     setSubmitting(true)
+    setErrors({})
 
     const formData = new FormData()
     formData.append('isFirstVisit', String(isFirstVisit))
@@ -167,27 +171,53 @@ function BookingModal({ isOpen, onClose, onSuccess }) {
 
     formData.append('appointmentDate', form.appointmentDate)
 
-    console.group('Appointment Booking Submission (Mock)')
-    for (const [key, value] of formData.entries()) {
-      console.log(key, value)
+    try {
+      const response = await axios.post(`${API_URL}/api/appointments/book`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+
+      resetModal()
+      onClose()
+
+      if (response.data.isFirstVisit) {
+        setNewCredentials({
+          email: response.data.email,
+          alphaNumber: response.data.alphaNumber,
+          generatedPassword: response.data.generatedPassword,
+        })
+        onSuccess('Appointment booked! Save your login credentials below.')
+      } else {
+        onSuccess(
+          `Welcome back, ${response.data.patientName}! Your appointment request has been submitted.`,
+        )
+      }
+    } catch (error) {
+      const message =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        'Unable to book appointment. Please try again.'
+      setErrors({ submit: message })
+    } finally {
+      setSubmitting(false)
     }
-    console.groupEnd()
-
-    await new Promise((resolve) => setTimeout(resolve, 600))
-
-    handleClose()
-    onSuccess(
-      isFirstVisit
-        ? 'Your appointment request has been received. Our team will contact you shortly.'
-        : 'Welcome back! Your appointment request has been submitted successfully.',
-    )
   }
 
-  if (!isOpen) return null
+  async function copyToClipboard(value, label) {
+    try {
+      await navigator.clipboard.writeText(value)
+      onSuccess(`${label} copied to clipboard.`)
+    } catch {
+      onSuccess(`Could not copy ${label.toLowerCase()}. Please copy it manually.`)
+    }
+  }
+
+  if (!isOpen && !newCredentials) return null
 
   const today = new Date().toISOString().split('T')[0]
 
   return (
+    <>
+      {isOpen && (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         type="button"
@@ -294,6 +324,15 @@ function BookingModal({ isOpen, onClose, onSuccess }) {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="px-6 py-6">
+            {errors.submit && (
+              <div
+                className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                role="alert"
+              >
+                {errors.submit}
+              </div>
+            )}
+
             <div className="space-y-4">
               {isFirstVisit ? (
                 <>
@@ -466,6 +505,78 @@ function BookingModal({ isOpen, onClose, onSuccess }) {
         )}
       </div>
     </div>
+      )}
+
+      {newCredentials && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm"
+            onClick={() => setNewCredentials(null)}
+            aria-label="Close credentials modal"
+          />
+
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="credentials-modal-title"
+            className="relative z-10 w-full max-w-md rounded-2xl border border-teal-200 bg-white p-8 shadow-2xl"
+          >
+            <div className="text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-700">
+                ✓
+              </div>
+              <h2 id="credentials-modal-title" className="mt-4 text-2xl font-bold text-slate-900">
+                Account Created
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Save these credentials now. You will need them to log in and manage your
+                appointments.
+              </p>
+            </div>
+
+            <div className="mt-6 space-y-3 rounded-xl bg-slate-50 p-4">
+              {[
+                { label: 'Email', value: newCredentials.email },
+                { label: 'Alpha Number', value: newCredentials.alphaNumber },
+                { label: 'Temporary Password', value: newCredentials.generatedPassword },
+              ].map(({ label, value }) => (
+                <div
+                  key={label}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {label}
+                    </p>
+                    <p className="truncate font-mono text-sm font-medium text-slate-900">{value}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(value, label)}
+                    className="shrink-0 rounded-md border border-teal-200 px-3 py-1.5 text-xs font-semibold text-teal-700 transition hover:bg-teal-50"
+                  >
+                    Copy
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-4 text-center text-xs text-amber-700">
+              You will be prompted to change your password on first login.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setNewCredentials(null)}
+              className="mt-6 w-full rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800"
+            >
+              I&apos;ve Saved My Credentials
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
