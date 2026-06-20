@@ -1,4 +1,5 @@
 import { Routes, Route, Link } from 'react-router-dom'
+import ProtectedRoute from './components/ProtectedRoute'
 import Home from './pages/Home'
 import AboutUs from './pages/AboutUs'
 import Services from './pages/Services'
@@ -6,6 +7,10 @@ import Testimonials from './pages/Testimonials'
 import ContactUs from './pages/ContactUs'
 import Login from './pages/Login'
 import AdminLogin from './pages/AdminLogin'
+import ChangePassword from './pages/ChangePassword'
+import PatientPortal from './pages/PatientPortal'
+import DoctorPortal from './pages/DoctorPortal'
+import ReceptionistPortal from './pages/ReceptionistPortal'
 
 const navLinks = [
   { to: '/', label: 'Home' },
@@ -48,6 +53,31 @@ function App() {
           <Route path="/contact" element={<ContactUs />} />
           <Route path="/login" element={<Login />} />
           <Route path="/admin-login" element={<AdminLogin />} />
+          <Route path="/change-password" element={<ChangePassword />} />
+          <Route
+            path="/portal/patient"
+            element={
+              <ProtectedRoute allowedRoles={['PATIENT']}>
+                <PatientPortal />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/portal/doctor"
+            element={
+              <ProtectedRoute allowedRoles={['DOCTOR']}>
+                <DoctorPortal />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/portal/receptionist"
+            element={
+              <ProtectedRoute allowedRoles={['RECEPTIONIST']}>
+                <ReceptionistPortal />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </main>
     </div>
