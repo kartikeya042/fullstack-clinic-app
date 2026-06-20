@@ -9,8 +9,8 @@ import Login from './pages/Login'
 import AdminLogin from './pages/AdminLogin'
 import ChangePassword from './pages/ChangePassword'
 import PatientPortal from './pages/PatientPortal'
-import DoctorPortal from './pages/DoctorPortal'
-import ReceptionistPortal from './pages/ReceptionistPortal'
+import DoctorDashboard from './pages/DoctorDashboard'
+import ReceptionistDashboard from './pages/ReceptionistDashboard'
 
 const navLinks = [
   { to: '/', label: 'Home' },
@@ -24,7 +24,8 @@ const navLinks = [
 
 function App() {
   const location = useLocation()
-  const isHomePage = location.pathname === '/'
+  const isFullWidthPage =
+    location.pathname === '/' || location.pathname.startsWith('/portal/') || location.pathname === '/admin-login'
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -47,7 +48,7 @@ function App() {
         </div>
       </header>
 
-      <main className={isHomePage ? '' : 'mx-auto max-w-6xl px-6'}>
+      <main className={isFullWidthPage ? '' : 'mx-auto max-w-6xl px-6'}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<AboutUs />} />
@@ -69,7 +70,7 @@ function App() {
             path="/portal/doctor"
             element={
               <ProtectedRoute allowedRoles={['DOCTOR']}>
-                <DoctorPortal />
+                <DoctorDashboard />
               </ProtectedRoute>
             }
           />
@@ -77,7 +78,7 @@ function App() {
             path="/portal/receptionist"
             element={
               <ProtectedRoute allowedRoles={['RECEPTIONIST']}>
-                <ReceptionistPortal />
+                <ReceptionistDashboard />
               </ProtectedRoute>
             }
           />

@@ -19,6 +19,7 @@ enum AppointmentStatus {
   PENDING
   CONFIRMED
   COMPLETED
+  CANCELLED
 }
 
 enum RecordType {
