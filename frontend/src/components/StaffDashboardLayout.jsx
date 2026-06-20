@@ -21,6 +21,7 @@ function StaffDashboardLayout({ role, title }) {
   const [error, setError] = useState('')
   const [confirmingId, setConfirmingId] = useState(null)
   const [cancellingId, setCancellingId] = useState(null)
+  const [isSaving, setIsSaving] = useState(false)
   const [toast, setToast] = useState({ message: '', type: 'success' })
 
   const [prescription, setPrescription] = useState('')
@@ -165,14 +166,38 @@ function StaffDashboardLayout({ role, title }) {
     }
   }
 
-  function handleSaveAction(channel) {
-    console.group(`${channel} Save Payload`)
-    console.log('appointmentId', selectedAppointment?.id)
-    console.log('prescription', prescription)
-    console.log('invoiceDetails', invoiceDetails)
-    console.log('invoiceAmount', invoiceAmount)
-    console.groupEnd()
-    setToast({ message: 'Saved', type: 'success' })
+  async function handleSaveAction(channel) {
+    if (!selectedAppointment || isSaving) return
+
+    setIsSaving(true)
+
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/staff/appointments/${selectedAppointment.id}/finalize`,
+        {
+          prescriptionText: prescription,
+          invoiceDetails,
+          invoiceAmount,
+          sendMethod: channel.toUpperCase(),
+        },
+        { headers: authHeaders },
+      )
+
+      const updated = response.data.appointment
+
+      setAppointments((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      )
+      setSelectedAppointment(updated)
+      setToast({ message: 'Document generated & dispatched successfully!', type: 'success' })
+    } catch (err) {
+      setToast({
+        message: err.response?.data?.error || 'Unable to generate and send document.',
+        type: 'error',
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   function statusBadge(status) {
@@ -420,16 +445,26 @@ function StaffDashboardLayout({ role, title }) {
                   <button
                     type="button"
                     onClick={() => handleSaveAction('Email')}
-                    className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                    disabled={
+                      isSaving ||
+                      selectedAppointment.status === 'CANCELLED' ||
+                      selectedAppointment.status === 'COMPLETED'
+                    }
+                    className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Save &amp; Send via Email
+                    {isSaving ? 'Generating...' : 'Save & Send via Email'}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSaveAction('WhatsApp')}
-                    className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    disabled={
+                      isSaving ||
+                      selectedAppointment.status === 'CANCELLED' ||
+                      selectedAppointment.status === 'COMPLETED'
+                    }
+                    className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Save &amp; Send via WhatsApp
+                    {isSaving ? 'Generating...' : 'Save & Send via WhatsApp'}
                   </button>
                 </div>
               </div>
