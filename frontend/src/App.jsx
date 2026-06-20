@@ -1,4 +1,4 @@
-import { Routes, Route, Link } from 'react-router-dom'
+import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import Home from './pages/Home'
 import AboutUs from './pages/AboutUs'
@@ -23,6 +23,9 @@ const navLinks = [
 ]
 
 function App() {
+  const location = useLocation()
+  const isHomePage = location.pathname === '/'
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="border-b border-slate-200 bg-white shadow-sm">
@@ -44,7 +47,7 @@ function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6">
+      <main className={isHomePage ? '' : 'mx-auto max-w-6xl px-6'}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<AboutUs />} />
