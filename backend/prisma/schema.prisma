@@ -1,0 +1,76 @@
+// Doctor Clinic — PostgreSQL schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  RECEPTIONIST
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+}
+
+enum RecordType {
+  PRESCRIPTION
+  INVOICE
+}
+
+model User {
+  id                   String   @id @default(uuid())
+  email                String   @unique
+  password_hash        String
+  role                 Role
+  must_change_password Boolean  @default(false)
+  created_at           DateTime @default(now())
+  patient              Patient?
+
+  @@map("users")
+}
+
+model Patient {
+  id            String        @id @default(uuid())
+  userId        String        @unique
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alpha_number  String        @unique
+  full_name     String
+  mobile_number String
+  appointments  Appointment[]
+
+  @@map("patients")
+}
+
+model Appointment {
+  id               String            @id @default(uuid())
+  patientId        String
+  patient          Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointment_date DateTime
+  status           AppointmentStatus @default(PENDING)
+  is_first_visit   Boolean
+  report_pdf       Bytes?
+  records          Record[]
+
+  @@map("appointments")
+}
+
+model Record {
+  id            String      @id @default(uuid())
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  type          RecordType
+  text_content  String?
+  pdf_buffer    Bytes?
+  amount        Decimal?    @db.Decimal(10, 2)
+
+  @@map("records")
+}
