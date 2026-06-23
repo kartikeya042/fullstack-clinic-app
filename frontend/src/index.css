@@ -4,3 +4,46 @@ body {
   margin: 0;
   min-height: 100vh;
 }
+
+@keyframes modal-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-panel-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes panel-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-modal-backdrop-in {
+  animation: modal-backdrop-in 300ms ease-out forwards;
+}
+
+.animate-modal-panel-in {
+  animation: modal-panel-in 300ms ease-out forwards;
+}
+
+.animate-panel-slide-in {
+  animation: panel-slide-in 300ms ease-out forwards;
+}

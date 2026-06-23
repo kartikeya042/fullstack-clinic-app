@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import axios from 'axios'
 import { API_URL } from '../config/api'
 import { useAuth } from '../context/AuthContext'
+import LoadingSpinner from './LoadingSpinner'
 import Toast from './Toast'
 
 function getTodayDate() {
@@ -13,7 +14,7 @@ function getRecordByType(records, type) {
 }
 
 function StaffDashboardLayout({ role, title }) {
-  const { token, user, logout } = useAuth()
+  const { token, user } = useAuth()
   const [selectedDate, setSelectedDate] = useState(getTodayDate)
   const [appointments, setAppointments] = useState([])
   const [selectedAppointment, setSelectedAppointment] = useState(null)
@@ -215,8 +216,18 @@ function StaffDashboardLayout({ role, title }) {
       COMPLETED: 'bg-slate-200 text-slate-700',
     }
 
+    const pulseDot =
+      status === 'PENDING' ? (
+        <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+      ) : status === 'CONFIRMED' ? (
+        <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+      ) : null
+
     return (
-      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${styles[status] || styles.PENDING}`}>
+      <span
+        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${styles[status] || styles.PENDING}`}
+      >
+        {pulseDot}
         {status}
       </span>
     )
@@ -250,13 +261,6 @@ function StaffDashboardLayout({ role, title }) {
                 className="rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
               />
             </label>
-            <button
-              type="button"
-              onClick={logout}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-            >
-              Sign Out
-            </button>
           </div>
         </div>
 
@@ -282,12 +286,12 @@ function StaffDashboardLayout({ role, title }) {
                   return (
                   <li key={appointment.id}>
                     <div
-                      className={`rounded-xl border p-4 transition ${
+                      className={`rounded-xl border p-4 ${
                         isCancelled
                           ? 'border-slate-200 bg-slate-50 opacity-60'
                           : selectedAppointment?.id === appointment.id
-                            ? 'border-teal-600 bg-teal-50 ring-2 ring-teal-100'
-                            : 'border-slate-200 hover:border-teal-300 hover:bg-slate-50'
+                            ? 'cursor-pointer border-teal-600 bg-teal-50 ring-2 ring-teal-100 transition-all duration-200 hover:-translate-y-1 hover:border-teal-400 hover:shadow-md active:translate-y-0'
+                            : 'cursor-pointer border-slate-200 transition-all duration-200 hover:-translate-y-1 hover:border-teal-400 hover:bg-slate-50 hover:shadow-md active:translate-y-0'
                       }`}
                     >
                       <button
@@ -314,17 +318,31 @@ function StaffDashboardLayout({ role, title }) {
                             type="button"
                             onClick={() => handleConfirmBooking(appointment.id)}
                             disabled={confirmingId === appointment.id || cancellingId === appointment.id}
-                            className="flex-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                            className="inline-flex flex-1 items-center justify-center rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition-all duration-150 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            {confirmingId === appointment.id ? 'Confirming...' : 'Confirm Booking'}
+                            {confirmingId === appointment.id ? (
+                              <>
+                                <LoadingSpinner />
+                                Confirming...
+                              </>
+                            ) : (
+                              'Confirm Booking'
+                            )}
                           </button>
                           <button
                             type="button"
                             onClick={() => handleCancelBooking(appointment.id)}
                             disabled={confirmingId === appointment.id || cancellingId === appointment.id}
-                            className="rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-60"
+                            className="inline-flex items-center justify-center rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition-all duration-150 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            {cancellingId === appointment.id ? 'Canceling...' : 'Cancel'}
+                            {cancellingId === appointment.id ? (
+                              <>
+                                <LoadingSpinner />
+                                Canceling...
+                              </>
+                            ) : (
+                              'Cancel'
+                            )}
                           </button>
                         </div>
                       )}
@@ -347,7 +365,10 @@ function StaffDashboardLayout({ role, title }) {
                 </div>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div
+                key={selectedAppointment.id}
+                className="animate-panel-slide-in space-y-6"
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 pb-4">
                   <div>
                     <h2 className="text-xl font-bold text-slate-900">
@@ -450,9 +471,16 @@ function StaffDashboardLayout({ role, title }) {
                       selectedAppointment.status === 'CANCELLED' ||
                       selectedAppointment.status === 'COMPLETED'
                     }
-                    className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-150 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {isSaving ? 'Generating...' : 'Save & Send via Email'}
+                    {isSaving ? (
+                      <>
+                        <LoadingSpinner />
+                        Generating...
+                      </>
+                    ) : (
+                      'Save & Send via Email'
+                    )}
                   </button>
                   <button
                     type="button"
@@ -462,9 +490,16 @@ function StaffDashboardLayout({ role, title }) {
                       selectedAppointment.status === 'CANCELLED' ||
                       selectedAppointment.status === 'COMPLETED'
                     }
-                    className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-all duration-150 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {isSaving ? 'Generating...' : 'Save & Send via WhatsApp'}
+                    {isSaving ? (
+                      <>
+                        <LoadingSpinner />
+                        Generating...
+                      </>
+                    ) : (
+                      'Save & Send via WhatsApp'
+                    )}
                   </button>
                 </div>
               </div>

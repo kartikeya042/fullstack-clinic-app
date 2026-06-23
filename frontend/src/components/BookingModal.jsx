@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { API_URL } from '../config/api'
+import { useAuth } from '../context/AuthContext'
+import LoadingSpinner from './LoadingSpinner'
 
 const INITIAL_FORM = {
   fullName: '',
@@ -38,6 +40,7 @@ function isFutureOrTodayDate(value) {
 }
 
 function BookingModal({ isOpen, onClose, onSuccess }) {
+  const { user } = useAuth()
   const [step, setStep] = useState(1)
   const [isFirstVisit, setIsFirstVisit] = useState(null)
   const [form, setForm] = useState(INITIAL_FORM)
@@ -61,6 +64,12 @@ function BookingModal({ isOpen, onClose, onSuccess }) {
     }
   }, [isOpen, onClose])
 
+  useEffect(() => {
+    if (isOpen && user?.role === 'PATIENT') {
+      setIsFirstVisit(false)
+    }
+  }, [isOpen, user])
+
   function resetModal() {
     setStep(1)
     setIsFirstVisit(null)
@@ -80,6 +89,11 @@ function BookingModal({ isOpen, onClose, onSuccess }) {
   }
 
   function validateStepOne() {
+    if (user?.role === 'PATIENT') {
+      setErrors({})
+      return true
+    }
+
     if (isFirstVisit === null) {
       setErrors({ visitType: 'Please select whether this is your first visit.' })
       return false
@@ -132,6 +146,10 @@ function BookingModal({ isOpen, onClose, onSuccess }) {
       if (hasAlpha && form.alphaNumber.trim().length < 3) {
         nextErrors.alphaNumber = 'Enter a valid alpha number.'
       }
+
+      if (form.reportFile && !isValidPdfFile(form.reportFile)) {
+        nextErrors.reportFile = 'Only PDF files are allowed.'
+      }
     }
 
     setErrors(nextErrors)
@@ -166,6 +184,9 @@ function BookingModal({ isOpen, onClose, onSuccess }) {
       }
       if (form.alphaNumber.trim()) {
         formData.append('alphaNumber', form.alphaNumber.trim().toUpperCase())
+      }
+      if (form.reportFile) {
+        formData.append('reportFile', form.reportFile)
       }
     }
 
@@ -221,7 +242,7 @@ function BookingModal({ isOpen, onClose, onSuccess }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+        className="animate-modal-backdrop-in absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 ease-out"
         onClick={handleClose}
         aria-label="Close booking modal"
       />
@@ -230,7 +251,7 @@ function BookingModal({ isOpen, onClose, onSuccess }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="booking-modal-title"
-        className="relative z-10 w-full max-w-lg rounded-2xl bg-white shadow-2xl"
+        className="animate-modal-panel-in relative z-10 w-full max-w-lg scale-100 rounded-2xl border border-white/20 bg-white/95 shadow-2xl backdrop-blur-md transition-all duration-300 ease-out"
       >
         <div className="border-b border-slate-200 px-6 py-5">
           <div className="flex items-start justify-between gap-4">
@@ -243,7 +264,9 @@ function BookingModal({ isOpen, onClose, onSuccess }) {
               </h2>
               <p className="mt-1 text-sm text-slate-600">
                 {step === 1
-                  ? 'Tell us if you are visiting for the first time.'
+                  ? user?.role === 'PATIENT'
+                    ? 'Confirm your identity to schedule your next visit.'
+                    : 'Tell us if you are visiting for the first time.'
                   : 'Fill in your details to schedule a visit.'}
               </p>
             </div>
@@ -271,40 +294,54 @@ function BookingModal({ isOpen, onClose, onSuccess }) {
 
         {step === 1 ? (
           <div className="px-6 py-6">
-            <fieldset>
-              <legend className="mb-4 text-sm font-medium text-slate-800">
-                Is this your first visit to our clinic?
-              </legend>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                {[
-                  { value: true, label: 'Yes, first visit', description: 'New patient registration' },
-                  { value: false, label: 'No, returning patient', description: 'Use mobile or alpha ID' },
-                ].map(({ value, label, description }) => (
-                  <label
-                    key={label}
-                    className={`cursor-pointer rounded-xl border p-4 transition ${
-                      isFirstVisit === value
-                        ? 'border-teal-600 bg-teal-50 ring-2 ring-teal-100'
-                        : 'border-slate-200 hover:border-teal-300'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="visitType"
-                      className="sr-only"
-                      checked={isFirstVisit === value}
-                      onChange={() => {
-                        setIsFirstVisit(value)
-                        setErrors({})
-                      }}
-                    />
-                    <span className="block text-sm font-semibold text-slate-900">{label}</span>
-                    <span className="mt-1 block text-xs text-slate-500">{description}</span>
-                  </label>
-                ))}
+            {user?.role === 'PATIENT' ? (
+              <div className="mb-6 flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4">
+                <div>
+                  <p className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800">
+                    Verified Patient Identity
+                  </p>
+                  <p className="mt-0.5 text-sm font-bold text-slate-900">{user.email}</p>
+                </div>
+                <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white">
+                  Registered
+                </span>
               </div>
-            </fieldset>
+            ) : (
+              <fieldset>
+                <legend className="mb-4 text-sm font-medium text-slate-800">
+                  Is this your first visit to our clinic?
+                </legend>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    { value: true, label: 'Yes, first visit', description: 'New patient registration' },
+                    { value: false, label: 'No, returning patient', description: 'Use mobile or alpha ID' },
+                  ].map(({ value, label, description }) => (
+                    <label
+                      key={label}
+                      className={`cursor-pointer rounded-xl border p-4 transition ${
+                        isFirstVisit === value
+                          ? 'border-teal-600 bg-teal-50 ring-2 ring-teal-100'
+                          : 'border-slate-200 hover:border-teal-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="visitType"
+                        className="sr-only"
+                        checked={isFirstVisit === value}
+                        onChange={() => {
+                          setIsFirstVisit(value)
+                          setErrors({})
+                        }}
+                      />
+                      <span className="block text-sm font-semibold text-slate-900">{label}</span>
+                      <span className="mt-1 block text-xs text-slate-500">{description}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            )}
 
             {errors.visitType && (
               <p className="mt-3 text-sm text-red-600" role="alert">
@@ -461,6 +498,27 @@ function BookingModal({ isOpen, onClose, onSuccess }) {
                       <p className="mt-1 text-sm text-red-600">{errors.alphaNumber}</p>
                     )}
                   </div>
+
+                  <div>
+                    <label htmlFor="returnReportFile" className="mb-1.5 block text-sm font-medium text-slate-700">
+                      Upload Medical Reports / Prescriptions (Optional)
+                    </label>
+                    <input
+                      id="returnReportFile"
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      onChange={(event) =>
+                        updateField('reportFile', event.target.files?.[0] ?? null)
+                      }
+                      className="w-full rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm file:mr-4 file:rounded-md file:border-0 file:bg-teal-700 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-teal-800"
+                    />
+                    {form.reportFile && (
+                      <p className="mt-2 text-xs text-slate-500">Selected: {form.reportFile.name}</p>
+                    )}
+                    {errors.reportFile && (
+                      <p className="mt-1 text-sm text-red-600">{errors.reportFile}</p>
+                    )}
+                  </div>
                 </>
               )}
 
@@ -496,9 +554,16 @@ function BookingModal({ isOpen, onClose, onSuccess }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center justify-center rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition-all duration-150 hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {submitting ? 'Submitting...' : 'Submit Appointment Request'}
+                {submitting ? (
+                  <>
+                    <LoadingSpinner />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Appointment Request'
+                )}
               </button>
             </div>
           </form>

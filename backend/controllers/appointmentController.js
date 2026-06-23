@@ -151,6 +151,7 @@ async function bookAppointment(req, res) {
         appointment_date: parsedDate,
         status: 'PENDING',
         is_first_visit: false,
+        report_pdf: req.file ? req.file.buffer : null,
       },
     })
 
@@ -165,4 +166,43 @@ async function bookAppointment(req, res) {
   }
 }
 
-module.exports = { bookAppointment }
+async function getPatientAppointments(req, res) {
+  try {
+    if (req.user.role !== 'PATIENT') {
+      return res.status(403).json({ error: 'Access denied' })
+    }
+
+    const prisma = await getPrisma()
+
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        patient: { userId: req.user.id },
+      },
+      include: {
+        patient: true,
+        records: true,
+      },
+      orderBy: { appointment_date: 'desc' },
+    })
+
+    const formatted = appointments.map((appointment) => {
+      const { report_pdf, records, ...rest } = appointment
+      return {
+        ...rest,
+        hasReportPdf: Boolean(report_pdf),
+        records: records.map(({ pdf_buffer, ...record }) => ({
+          ...record,
+          hasPdf: Boolean(pdf_buffer),
+          amount: record.amount ? String(record.amount) : null,
+        })),
+      }
+    })
+
+    return res.status(200).json({ success: true, appointments: formatted })
+  } catch (error) {
+    console.error('Get patient appointments error:', error)
+    return res.status(500).json({ error: 'Internal server error' })
+  }
+}
+
+module.exports = { bookAppointment, getPatientAppointments }
