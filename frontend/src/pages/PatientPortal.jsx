@@ -4,19 +4,13 @@ import { API_URL } from '../config/api'
 import { useAuth } from '../context/AuthContext'
 import { useBooking } from '../context/BookingContext'
 import LoadingSpinner from '../components/LoadingSpinner'
-import Toast from '../components/Toast'
 
 function getRecordByType(records, type) {
   return records?.find((record) => record.type === type) ?? null
 }
 
-function formatDate(dateString) {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+function formatVisitDate(dateString) {
+  return new Date(dateString).toLocaleDateString()
 }
 
 function statusBadge(status) {
@@ -42,11 +36,6 @@ function PatientPortal() {
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [toast, setToast] = useState({ message: '', type: 'success' })
-
-  const showToast = useCallback((message, type = 'success') => {
-    setToast({ message, type })
-  }, [])
 
   const fetchAppointments = useCallback(async () => {
     setLoading(true)
@@ -69,25 +58,13 @@ function PatientPortal() {
     fetchAppointments()
   }, [fetchAppointments])
 
-  useEffect(() => {
-    if (!toast.message) return undefined
-    const timer = setTimeout(() => setToast({ message: '', type: 'success' }), 4000)
-    return () => clearTimeout(timer)
-  }, [toast.message])
-
   return (
     <div className="min-h-[calc(100vh-5rem)] bg-slate-100 py-8">
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        onClose={() => setToast({ message: '', type: 'success' })}
-      />
-
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
         <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Patient Portal</h1>
-            <p className="mt-1 text-sm text-slate-600">{user?.email}</p>
+            <p className="mt-1 text-sm text-slate-600">Welcome back, {user?.email}</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -132,8 +109,8 @@ function PatientPortal() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2">
             {appointments.map((appointment) => {
-              const prescription = getRecordByType(appointment.records, 'PRESCRIPTION')
-              const invoice = getRecordByType(appointment.records, 'INVOICE')
+              const prescriptionRecord = getRecordByType(appointment.records, 'PRESCRIPTION')
+              const invoiceRecord = getRecordByType(appointment.records, 'INVOICE')
 
               return (
                 <article
@@ -143,41 +120,39 @@ function PatientPortal() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium text-teal-700">
-                        {formatDate(appointment.appointment_date)}
+                        {formatVisitDate(appointment.appointment_date)}
                       </p>
                       <h2 className="mt-1 text-lg font-bold text-slate-900">
-                        {appointment.patient.full_name}
+                        {appointment.patient?.full_name}
                       </h2>
                       <p className="mt-1 text-xs font-semibold tracking-wide text-slate-500">
-                        {appointment.patient.alpha_number}
+                        {appointment.patient?.alpha_number}
                       </p>
                     </div>
                     {statusBadge(appointment.status)}
                   </div>
 
-                  {prescription?.text_content && (
-                    <div className="mt-5 rounded-xl border border-teal-200 bg-teal-50 p-4">
+                  {prescriptionRecord && (
+                    <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-xs font-bold uppercase tracking-wider text-teal-800">
-                        Rx / Doctor&apos;s Notes
+                        Rx / Doctor&apos;s Clinical Notes
                       </p>
                       <p className="mt-2 text-sm leading-relaxed text-slate-700">
-                        {prescription.text_content}
+                        {prescriptionRecord.text_content || 'No prescription notes recorded.'}
                       </p>
                     </div>
                   )}
 
-                  {invoice && (
-                    <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                      <p className="text-sm font-bold text-slate-800">
-                        Total Billed:{' '}
-                        <span className="text-emerald-700">
-                          ${parseFloat(invoice.amount || 0).toFixed(2)}
-                        </span>
+                  {invoiceRecord && (
+                    <>
+                      <p className="mt-3 inline-block rounded-xl border border-slate-200 bg-slate-100/80 p-2.5 text-sm font-extrabold text-slate-900">
+                        Total Billed Invoice:{' '}
+                        <span className="text-emerald-700">INR {invoiceRecord.amount}</span>
                       </p>
-                      {invoice.text_content && (
-                        <p className="mt-1 text-xs text-slate-500">{invoice.text_content}</p>
+                      {invoiceRecord.text_content && (
+                        <p className="mt-2 text-xs text-slate-500">{invoiceRecord.text_content}</p>
                       )}
-                    </div>
+                    </>
                   )}
                 </article>
               )

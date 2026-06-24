@@ -33,11 +33,19 @@ async function finalizeAppointment(req, res) {
     }
 
     const { id } = req.params
-    const { prescriptionText, invoiceDetails, invoiceAmount, sendMethod } = req.body
+    const {
+      prescriptionText,
+      invoiceDetails,
+      invoiceAmount,
+      sendEmail,
+      sendWhatsApp,
+      sendMethod,
+    } = req.body
 
-    if (!['EMAIL', 'WHATSAPP'].includes(sendMethod)) {
-      return res.status(400).json({ error: 'sendMethod must be EMAIL or WHATSAPP' })
-    }
+    const shouldSendEmail =
+      sendEmail === true || sendMethod === 'EMAIL' || sendMethod === 'BOTH'
+    const shouldSendWhatsApp =
+      sendWhatsApp === true || sendMethod === 'WHATSAPP' || sendMethod === 'BOTH'
 
     const prisma = await getPrisma()
 
@@ -100,14 +108,16 @@ async function finalizeAppointment(req, res) {
       })
     })
 
-    if (sendMethod === 'WHATSAPP') {
+    if (shouldSendWhatsApp) {
       await sendWhatsAppDocument(
         appointment.patient.mobile_number,
         message,
         pdfBuffer,
         fileName,
       )
-    } else {
+    }
+
+    if (shouldSendEmail) {
       await sendClinicEmail(
         appointment.patient.user.email,
         'Your Doctor Clinic Visit Summary',

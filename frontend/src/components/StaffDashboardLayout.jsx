@@ -23,6 +23,8 @@ function StaffDashboardLayout({ role, title }) {
   const [confirmingId, setConfirmingId] = useState(null)
   const [cancellingId, setCancellingId] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [sendEmail, setSendEmail] = useState(true)
+  const [sendWhatsApp, setSendWhatsApp] = useState(true)
   const [toast, setToast] = useState({ message: '', type: 'success' })
 
   const [prescription, setPrescription] = useState('')
@@ -167,7 +169,7 @@ function StaffDashboardLayout({ role, title }) {
     }
   }
 
-  async function handleSaveAction(channel) {
+  async function handleSaveAction() {
     if (!selectedAppointment || isSaving) return
 
     setIsSaving(true)
@@ -179,7 +181,8 @@ function StaffDashboardLayout({ role, title }) {
           prescriptionText: prescription,
           invoiceDetails,
           invoiceAmount,
-          sendMethod: channel.toUpperCase(),
+          sendEmail,
+          sendWhatsApp,
         },
         { headers: authHeaders },
       )
@@ -447,7 +450,7 @@ function StaffDashboardLayout({ role, title }) {
                       htmlFor="invoiceAmount"
                       className="mb-2 block text-sm font-semibold text-slate-800"
                     >
-                      Amount ($)
+                      Billing Amount (INR)
                     </label>
                     <input
                       id="invoiceAmount"
@@ -457,49 +460,41 @@ function StaffDashboardLayout({ role, title }) {
                       value={invoiceAmount}
                       onChange={(event) => setInvoiceAmount(event.target.value)}
                       className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-                      placeholder="0.00"
+                      placeholder="500"
                     />
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row">
+                <div className="flex flex-col gap-4 border-t border-slate-200 pt-5">
+                  <div className="flex flex-wrap items-center gap-6 px-1">
+                    <label className="flex cursor-pointer select-none items-center gap-2.5 text-sm font-semibold text-slate-700 hover:text-slate-900">
+                      <input
+                        type="checkbox"
+                        checked={sendEmail}
+                        onChange={(event) => setSendEmail(event.target.checked)}
+                        className="h-4 w-4 cursor-pointer rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                      />
+                      Send PDF via Email
+                    </label>
+
+                    <label className="flex cursor-pointer select-none items-center gap-2.5 text-sm font-semibold text-slate-700 hover:text-slate-900">
+                      <input
+                        type="checkbox"
+                        checked={sendWhatsApp}
+                        onChange={(event) => setSendWhatsApp(event.target.checked)}
+                        className="h-4 w-4 cursor-pointer rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                      />
+                      Send PDF via WhatsApp
+                    </label>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={() => handleSaveAction('Email')}
-                    disabled={
-                      isSaving ||
-                      selectedAppointment.status === 'CANCELLED' ||
-                      selectedAppointment.status === 'COMPLETED'
-                    }
-                    className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-150 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={isSaving || (!prescription && !invoiceDetails)}
+                    onClick={handleSaveAction}
+                    className="w-full self-start rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-md shadow-emerald-500/20 transition hover:bg-emerald-700 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                   >
-                    {isSaving ? (
-                      <>
-                        <LoadingSpinner />
-                        Generating...
-                      </>
-                    ) : (
-                      'Save & Send via Email'
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSaveAction('WhatsApp')}
-                    disabled={
-                      isSaving ||
-                      selectedAppointment.status === 'CANCELLED' ||
-                      selectedAppointment.status === 'COMPLETED'
-                    }
-                    className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-all duration-150 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isSaving ? (
-                      <>
-                        <LoadingSpinner />
-                        Generating...
-                      </>
-                    ) : (
-                      'Save & Send via WhatsApp'
-                    )}
+                    {isSaving ? 'Saving & Dispatching...' : 'Save & Dispatch Document'}
                   </button>
                 </div>
               </div>

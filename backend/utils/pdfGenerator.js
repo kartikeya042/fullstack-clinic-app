@@ -64,7 +64,7 @@ function generateClinicPDF(patient, prescriptionText, invoiceDetails, invoiceAmo
     doc.font('Helvetica').fontSize(11).fillColor('#334155')
     doc.text(`Service Details: ${invoiceDetails?.trim() || 'General consultation'}`)
     doc.moveDown(0.3)
-    doc.font('Helvetica-Bold').fontSize(12).text(`Total Amount Due: $${amount.toFixed(2)}`)
+    doc.font('Helvetica-Bold').fontSize(12).text(`Total Amount Due: INR ${amount.toFixed(2)}`)
 
     doc.moveDown(2)
     doc
