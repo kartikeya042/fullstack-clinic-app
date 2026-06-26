@@ -1,5 +1,52 @@
+# --- Dependencies (backend + frontend) ---
 node_modules/
-dist/
+
+# --- Environment & secrets (keep .env.example files for reference) ---
 .env
-.env.local
-generated/
+.env.*
+!.env.example
+!.env.*.example
+
+# --- Backend ---
+# Prisma generated client — regenerate: cd backend && npx prisma generate
+backend/generated/
+
+# --- Frontend (Vite) ---
+frontend/dist/
+frontend/dist-ssr/
+*.local
+
+# --- Deployment / local archives ---
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# --- Logs ---
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Editors & IDEs ---
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# --- Test & tooling ---
+coverage/
+.cache/
+*.tsbuildinfo

@@ -1,4 +1,5 @@
-require('dotenv').config()
+const path = require('path')
+require('dotenv').config({ path: path.join(__dirname, '.env') })
 
 const express = require('express')
 const cors = require('cors')
@@ -19,6 +20,20 @@ app.get('/', (req, res) => {
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
+})
+
+app.get('/api/health/db', async (req, res) => {
+  try {
+    const { prisma } = await import('./lib/prisma.mjs')
+    await prisma.$queryRaw`SELECT 1`
+    return res.json({ status: 'ok', database: 'connected' })
+  } catch (error) {
+    console.error('Database health check failed:', error)
+    return res.status(500).json({
+      status: 'error',
+      message: error.message,
+    })
+  }
 })
 
 app.use('/api/auth', authRoutes)
